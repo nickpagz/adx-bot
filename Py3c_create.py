@@ -48,11 +48,18 @@ def get_markets():
 
 
 def build_tc_pairs_list(pairs):
+    #ftx_pairs = {}
     tc_pairs = {}
+    #for key in markets:
+        #if "PERP" in key and not any(perp in key for perp in config.PAIRS_BLACKLIST):
+            #ftx_pairs[key] = ""
     for key in markets:
+        #print(markets[key]["id"])
+        #time.sleep(0.2)
         if "PERP" in markets[key]["id"] and not any(perp in markets[key]["id"] for perp in config.PAIRS_BLACKLIST):
             tc_pairs[markets[key]["id"]] = ""
     return tc_pairs
+
 
 def get_min_order_price(markets):
     limits = {}
