@@ -28,23 +28,38 @@ def get_markets():
     all_markets = ftx.load_markets(True)
     return all_markets
 
+
+## Works on 3.9.5 - Use versions below for 3.9.2
+##def build_tc_pairs_list(pairs):
+##    tc_pairs = {}
+##    for key in markets:
+##        print(key)
+##        if "PERP" in key and not any(perp in key for perp in config.PAIRS_BLACKLIST):
+##            tc_pairs[key] = ""
+##    return tc_pairs
+##
+##def get_min_order_price(markets):
+##    limits = {}
+##    for key in markets:
+##        if "PERP" in key and not any(perp in key for perp in config.PAIRS_BLACKLIST):
+##            if "minProvideSize" in markets[key]["info"]:
+##                limits[key] = math.ceil(float(markets[key]["info"]["minProvideSize"]) * float(markets[key]["info"]["price"]))
+##    return limits
+
+
 def build_tc_pairs_list(pairs):
-    #ftx_pairs = {}
     tc_pairs = {}
-    #for key in markets:
-        #if "PERP" in key and not any(perp in key for perp in config.PAIRS_BLACKLIST):
-            #ftx_pairs[key] = ""
     for key in markets:
-        if "PERP" in key and not any(perp in key for perp in config.PAIRS_BLACKLIST):
-            tc_pairs[key] = ""
+        if "PERP" in markets[key]["id"] and not any(perp in markets[key]["id"] for perp in config.PAIRS_BLACK>
+            tc_pairs[markets[key]["id"]] = ""
     return tc_pairs
 
 def get_min_order_price(markets):
     limits = {}
     for key in markets:
-        if "PERP" in key and not any(perp in key for perp in config.PAIRS_BLACKLIST):
+        if "PERP" in markets[key]["id"] and not any(perp in markets[key]["id"] for perp in config.PAIRS_BLACK>
             if "minProvideSize" in markets[key]["info"]:
-                limits[key] = math.ceil(float(markets[key]["info"]["minProvideSize"]) * float(markets[key]["info"]["price"]))
+                limits[markets[key]["id"]] = math.ceil(float(markets[key]["info"]["minProvideSize"]) * float(>
     return limits
 
 def generate_long_bots(pairs, minprice):
