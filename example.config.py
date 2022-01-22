@@ -14,9 +14,9 @@ ADX_LENGTH = 14
 EMA_LENGTH = 20
 EMA_SMOOTHING = 3
 DEAL_BOT_RATIO_WARNING = 0.75
-CLOSE_DEALS_WITH_BOT = True  # WARNING: Will close all open positions with no equivalent enabled bots.
+CLOSE_DEALS_WITH_BOT = False  # WARNING: Will close all open positions with no equivalent enabled bots.
 EARLY_CLOSE = True
-CLOSE_DEALS = False # Allow bot to close deals on opposite signals. Use False to manually rescue red bags.
+CLOSE_DEALS = True # Allow bot to close deals on opposite signals. Use False to manually rescue red bags.
 
 # 3Commas Bot Settings
 BASE_ORDER_VOLUME = 10 #IN USD
