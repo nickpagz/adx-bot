@@ -292,7 +292,6 @@ def perp_stats(perp):
             stats.append(df.loc[(df.shape[0]-2), 'DMP_'+str(adx_length)])
             stats.append(df.loc[(df.shape[0]-2), 'DMN_'+str(adx_length)])
             stats.append(df.loc[(df.shape[0]-2), 'EMA_SMOOTH'])
-            stats.append(trend_dir)
             return stats, trend_dir
 
 
