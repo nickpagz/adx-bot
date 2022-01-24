@@ -205,22 +205,39 @@ def get_enabled_bots():
 def perp_stats(perp):
     stats = []
     time_frame_mins = config.TF
+    htf_mins = time_frame_mins * config.HTF_MULTIPLIER
     adx_length = config.ADX_LENGTH
     ema_length = config.EMA_LENGTH
+    htf_fast_ema = config.HTF_FAST_EMA
+    htf_slow_ema = config.HTF_SLOW_EMA
     look_back = max(adx_length, ema_length)*4
+    htf_look_back = htf_slow_ema * 4
     current_time = datetime.datetime.now()
     from_time = current_time - datetime.timedelta(minutes = time_frame_mins*look_back)
+    htf_from_time = current_time - datetime.timedelta(minutes = htf_mins*htf_look_back)
     from_time_stamp = int(from_time.timestamp() * 1000)
+    htf_from_time_stamp = int(htf_from_time.timestamp() * 1000)
     if time_frame_mins < 60:
         time_frame = time_frame_mins
         time_frame_units = 'm'
     elif time_frame_mins >= 60:
         time_frame = int(time_frame_mins//60)
         time_frame_units = 'h'
+
+    if htf_mins < 60:
+        htf_time_frame = htf_mins
+        htf_units = 'm'
+    elif htf_mins >= 60:
+        htf_time_frame = int(htf_mins//60)
+        htf_units = 'h'
+    
     trycnt = 4
     while trycnt > 0:
         try:
             candles = ftx.fetch_ohlcv(perp, str(int(time_frame)) + time_frame_units, from_time_stamp)
+            time.sleep(1)
+            if config.HTF_VALIDATE:
+                htf_candles = ftx.fetch_ohlcv(perp, str(int(htf_time_frame)) + htf_units, htf_from_time_stamp)
             trycnt = 0
         except Exception as e:
             print("Connection error, trying again...")
@@ -247,10 +264,21 @@ def perp_stats(perp):
             df['EMA_SLOPE'] = df['EMA_'+str(ema_length)].diff().abs() / df['EMA_'+str(ema_length)]
             # Calculate EMA(3) of slope values
             df['EMA_SMOOTH'] = df['EMA_SLOPE'].ewm(span=config.EMA_SMOOTHING).mean()
-            #if df.loc[(df.shape[0]-2), 'ADX_SLOPE'] > 0:
-            #    adx_direction = 1
-            #elif df.loc[(df.shape[0]-2), 'ADX_SLOPE'] =< 0:
-            #    adx_direction = -1
+
+            # HTF Calcs
+            if config.HTF_VALIDATE:
+                df2 = pd.DataFrame(np.array(htf_candles), columns=['Time', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                df2.ta.ema(close='Close', length=htf_fast_ema, append=True)
+                df2.ta.ema(close='Close', length=htf_slow_ema, append=True)
+                ema_fast = df2.loc[(df.shape[0]-2), 'EMA_'+str(htf_fast_ema)]
+                ema_slow = df2.loc[(df.shape[0]-2), 'EMA_'+str(htf_slow_ema)]
+                if ema_fast > ema_slow:
+                    trend_dir = "up"
+                elif ema_fast <= ema_slow:
+                    trend_dir = "down"
+            else:
+                trend_dir = "null"
+
 
             if config.EARLY_CLOSE and df.loc[(df.shape[0]-2), 'ADX_SLOPE'] < df.loc[(df.shape[0]-3), 'ADX_SLOPE'] and df.loc[(df.shape[0]-3), 'ADX_SLOPE'] < df.loc[(df.shape[0]-4), 'ADX_SLOPE'] and df.loc[(df.shape[0]-4), 'ADX_SLOPE'] and df.loc[(df.shape[0]-5), 'ADX_SLOPE']:
                 adx_direction = -1
@@ -264,7 +292,7 @@ def perp_stats(perp):
             stats.append(df.loc[(df.shape[0]-2), 'DMP_'+str(adx_length)])
             stats.append(df.loc[(df.shape[0]-2), 'DMN_'+str(adx_length)])
             stats.append(df.loc[(df.shape[0]-2), 'EMA_SMOOTH'])
-            return stats
+            return stats, trend_dir
 
 
             
@@ -327,15 +355,15 @@ while True:
         print('Getting perps OHLCV data...')
         for perp in long_bot_ids:
             print(".", end =" ")
-            unfiltered_stats = perp_stats(perp)
+            unfiltered_stats, trend_direction = perp_stats(perp)
             ADX = unfiltered_stats[1]
             ADX_Slope = unfiltered_stats[2]
             DM_plus = unfiltered_stats[3]
             DM_minus = unfiltered_stats[4]
-            if ADX > 15 and (ADX_Slope > 0 and ((DM_plus > DM_minus and ADX > DM_minus) or (ADX < DM_plus and ADX < DM_minus))) and DM_plus > DM_minus:
+            if ADX > 15 and (ADX_Slope > 0 and ((DM_plus > DM_minus and ADX > DM_minus) or (ADX < DM_plus and ADX < DM_minus))) and DM_plus > DM_minus and trend_direction == "up":
                 unfiltered_stats.append("long")
                 unsorted_tradable_perps.append(unfiltered_stats)
-            elif ADX > 15 and (ADX_Slope > 0 and ((DM_plus < DM_minus and ADX > DM_plus) or (ADX < DM_plus and ADX < DM_minus))) and DM_plus < DM_minus:
+            elif ADX > 15 and (ADX_Slope > 0 and ((DM_plus < DM_minus and ADX > DM_plus) or (ADX < DM_plus and ADX < DM_minus))) and DM_plus < DM_minus and trend_direction == "down":
                 unfiltered_stats.append("short")
                 unsorted_tradable_perps.append(unfiltered_stats)
             elif ADX_Slope < 0:
